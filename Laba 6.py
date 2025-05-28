@@ -17,6 +17,7 @@ def fact(n):
     for i in range(2, n+1):
         s=s*i
     return s
+
 def F_rec(n):
     if n == 1 or n==0:  # F(1) = 1
         return 10
