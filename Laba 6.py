@@ -12,11 +12,16 @@ import pandas as pd #для обработки и анализа данных. �
 
 results=[] #для используется для итерационной функции(возврат к прошлым значениям функции) и для формирования таблицы
 # Рекурсивная реализация
+def fact(n):
+    s=1
+    for i in range(2, n+1):
+        s=s*i
+    return s
 def F_rec(n):
     if n == 1 or n==0:  # F(1) = 1
         return 10
     if n > 1:
-        return (1 if n % 2 == 0 else -1) * (math.factorial(int(F_rec(n - 2))) - ((2 * F_rec(n - 1)) / (math.factorial(2 * n) if 2*n < 171 else float('inf'))))
+        return (1 if n % 2 == 0 else -1) * (fact(int(F_rec(n - 2))) - ((2 * F_rec(n - 1)) / (fact(2 * n) if 2*n < 171 else float('inf'))))
 
 
 # Итерационная
@@ -27,7 +32,7 @@ def F_iter(n):
     fn_minus_2 = 10  # F(0)
     fn_minus_1 = 10  # F(1)
     for i in range(2, n + 1):
-        fn = (1 if i % 2 == 0 else -1) * (math.factorial(int(fn_minus_2)) - ((2 * fn_minus_1) / (math.factorial(2 * i) if 2*i < 171 else float('inf'))))
+        fn = (1 if i % 2 == 0 else -1) * (fact(int(fn_minus_2)) - ((2 * fn_minus_1) / (fact(2 * i) if 2*i < 171 else float('inf'))))
         # Обновляем значения для следующей итерации
         fn_minus_2, fn_minus_1 = fn_minus_1, fn
     return fn_minus_1
