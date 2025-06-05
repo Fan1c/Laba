@@ -37,7 +37,9 @@ def F_iter(n):
 
     for i in range(2, n + 1):
         factorial *= (2 * i) * (2 * i - 1)  # Вычисление (2i)!
-        fact_fn_minus_2 *= fn_minus_2
+        fact_fn_minus_2 = 1  # нужно факториал расчитывать каждый раз
+        for j in range(1, fn_minus_2 + 1):
+            fact_fn_minus_2 *= j
         fn = (1 if i % 2 == 0 else -1) * (fact_fn_minus_2 - ((2 * fn_minus_1) / factorial if 2*i < 171 else float('inf')))
         # Обновление значений для следующей итерации
         fn_minus_2, fn_minus_1 = fn_minus_1, fn
