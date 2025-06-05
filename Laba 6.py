@@ -60,7 +60,7 @@ for n in range(1, max_n + 1):
     results.append({
         'n': n,
         'F_rec': f_rec,
-        'F_iter': f_it,
+        'F_iter': f_rec,
         'Время рекурсии (мс)': endR,
         'Время итерации (мс)': endI
     })
