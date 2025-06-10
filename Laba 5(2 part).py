@@ -1,58 +1,69 @@
 #будем исключать перестановки строк и столбцов, после которых сумма 1
 #строки элементов матрицы превышает заданное значение max_sum.
-import itertools
 import timeit
+import itertools
 
-def get_permutations_with_diagonal_limit(matrix, max_diagonal_sum):
+max_digital=int(input("Введите число: "))
+def generate_matrices_python(matrix, max_sum):
+    # Генерирует перестановки строк и столбцов матрицы,
+    # исключая перестановки, где сумма элементов первой строки превышает max_sum.
     n = len(matrix)
-    all_indices = list(range(n))
-    result_matrices = []
-    processed_permutations = set()
+    row_permutations = list(itertools.permutations(range(n)))
+    col_permutations = list(itertools.permutations(range(n)))
 
-    for row_perm in itertools.permutations(all_indices):
-        for col_perm in itertools.permutations(all_indices):
-            # Преобразуем перестановки в кортежи для хеширования
-            row_tuple = tuple(row_perm)
-            col_tuple = tuple(col_perm)
+    matrices = []
+    for row_perm in row_permutations:
+        # Создаем новую матрицу с переставленными строками
+        new_matrix_rows = [matrix[i] for i in row_perm]
 
-            # Проверяем, была ли такая комбинация перестановок уже обработана
-            if (row_tuple, col_tuple) in processed_permutations:
-                continue # Пропускаем, если уже обработана
+        # Проверяем, что сумма элементов в первой строке не превышает max_sum
+        if sum(new_matrix_rows[0]) > max_sum:
+            continue # Пропускаем эту перестановку строк
+
+        for col_perm in col_permutations:
             new_matrix = []
-            for i in row_perm:
-                row = []
-                for j in col_perm:
-                    row.append(matrix[i][j])
-                new_matrix.append(row)
+            for row in new_matrix_rows:
+                new_row = [row[j] for j in col_perm]
+                new_matrix.append(new_row)
+            if all(new_matrix[i][i]==0 for i in range (len(new_matrix))):
+                matrices.append(new_matrix)
+    return matrices
 
-            if sum(new_matrix[0]) < max_diagonal_sum:
-                if all(new_matrix[i][i]==0 for i in range(len(matrix))):
-                    result_matrices.append(new_matrix)
-                    # Добавляем текущую комбинацию перестановок в множество обработанных
-                    processed_permutations.add((row_tuple, col_tuple))
-    return result_matrices
 
-matrix = [
-    [0, 2, 3, 1],
-    [7, 0, 8, 4],
-    [6, 9, 0, 2],
-    [1, 3, 4, 0]
-]
+def print_matrix(M):
+    for row in M:
+        print("    ", row)
 
-max_diagonal_sum = int(input('Введите число: '))
+def print_first_n(variants, n=5):
+    for k, M in enumerate(variants[:n], 1):
+        print(f"Вариант {k}:")
+        print_matrix(M)
+        print()
 
-# Замер времени выполнения функции
-def run_permutations():
-    global limited_results
-    limited_results = get_permutations_with_diagonal_limit(matrix, max_diagonal_sum)
+if __name__ == "__main__":
+    A = [
+        [0, 2, 3, 1],
+        [7, 0, 8, 4],
+        [6, 9, 0, 2],
+        [1, 3, 4, 0]
+    ]
+    print("Исходная матрица:")
+    print_matrix(A)
+    zero_idx = [i for i in range(len(A)) if A[i][i] == 0]
+    first_zero = zero_idx[0]
 
-num_runs = 5  # Количество запусков для усреднения времени
-execution_time = timeit.timeit(run_permutations, number=num_runs) / num_runs
+    vars_it = generate_matrices_python(A, max_digital)
 
-print(f"Найдено {len(limited_results)} вариантов.")
-print(f"Среднее время выполнения: {execution_time:.6f} секунд")
+    cons = lambda M: sum(M[first_zero]) % 2 == 0
+    obj = lambda M: sum(M[i][i] for i in range(len(M)))
+    filtered = [M for M in vars_it if cons(M)]
+    max_obj = max(obj(M) for M in filtered)
+    optimal = [M for M in filtered if obj(M) == max_obj]
 
-for m in limited_results:
-    for row in m:
-        print(row)
-    print()
+    print("=== Часть 2: Оптимальные варианты ===")
+    print("Условия отбора:")
+    print(f"  1) Сумма элементов строки 1 чётна")
+    print(f"  2) Максимальная сумма диагонали = {max_obj}")
+    print(f"Найдено оптимальных вариантов: {len(optimal)}")
+
+    print_first_n(optimal)
