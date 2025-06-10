@@ -60,7 +60,7 @@ for mat in zero_diagonal_matrices_algorithmic:
     print(mat)
     print()
 
-# Замер времени для способа с использованием NumPy
+# Замер времени для способа с использованием Itertools
 start_time = time.time()
 matrices_pythonic = generate_matrices_pythonic(matrix)
 zero_diagonal_matrices_pythonic = find_zero_diagonal_matrices(matrices_pythonic)
