@@ -11,7 +11,7 @@ import itertools
 import timeit
 
 def generate_matrices_algorithmic(matrix):
-    """Генерирует перестановки строк и столбцов матрицы."""
+    #Генерирует перестановки строк и столбцов матрицы
     n = len(matrix)
     row_permutations = list(itertools.permutations(range(n)))
     col_permutations = list(itertools.permutations(range(n)))
@@ -27,7 +27,7 @@ def generate_matrices_algorithmic(matrix):
     return matrices
 
 def generate_matrices_pythonic(matrix):
-    """Генерирует перестановки строк и столбцов матрицы, используя срезы списков."""
+    #Генерирует перестановки строк и столбцов матрицы, используя срезы списков
     n = len(matrix)
     row_permutations = list(itertools.permutations(range(n)))
     col_permutations = list(itertools.permutations(range(n)))
@@ -45,7 +45,7 @@ def generate_matrices_pythonic(matrix):
     return matrices
 
 def find_zero_diagonal_matrices(matrices):
-    """Находит матрицы с нулевой диагональю."""
+   #Находит матрицы с нулевой диагональю
     zero_diagonal_matrices = []
     for matrix in matrices:
         trace = 0
