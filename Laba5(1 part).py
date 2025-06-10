@@ -1,18 +1,17 @@
-#Задание состоит из двух частей. 
+#Задание состоит из двух частей.
 #1 часть – написать программу в соответствии со своим вариантом задания. Написать 2 варианта формирования (алгоритмический и с помощью функций Питона), сравнив по времени их выполнение.
 #2 часть – усложнить написанную программу, введя по своему усмотрению в условие минимум одно ограничение на характеристики объектов (которое будет сокращать количество переборов) и целевую
 #функцию для нахождения оптимального  решения.
-#Вариант 22. Дана квадратная матрица. Сформировать все возможные варианты данной 
+#Вариант 22. Дана квадратная матрица. Сформировать все возможные варианты данной
 #матрицы путем перестановки строк и столбцов, в которых диагональный элемент равен нулю.
 
-#1 часть 
+#1 часть
 
-import numpy as np
 import itertools
-import time
+import timeit
 
 def generate_matrices_algorithmic(matrix):
-    #Генерация перестановок строк и столбцов алгоритмическим способом
+    """Генерирует перестановки строк и столбцов матрицы."""
     n = len(matrix)
     row_permutations = list(itertools.permutations(range(n)))
     col_permutations = list(itertools.permutations(range(n)))
@@ -20,15 +19,15 @@ def generate_matrices_algorithmic(matrix):
     matrices = []
     for row_perm in row_permutations:
         for col_perm in col_permutations:
-            new_matrix = np.zeros_like(matrix)
+            new_matrix = [[0] * n for _ in range(n)] # Создаем новую матрицу (список списков)
             for i in range(n):
                 for j in range(n):
-                    new_matrix[i, j] = matrix[row_perm[i], col_perm[j]]
+                    new_matrix[i][j] = matrix[row_perm[i]][col_perm[j]]
             matrices.append(new_matrix)
     return matrices
 
 def generate_matrices_pythonic(matrix):
-    #Генерация перестановок строк и столбцов с использованием NumPy
+    """Генерирует перестановки строк и столбцов матрицы, используя срезы списков."""
     n = len(matrix)
     row_permutations = list(itertools.permutations(range(n)))
     col_permutations = list(itertools.permutations(range(n)))
@@ -36,40 +35,54 @@ def generate_matrices_pythonic(matrix):
     matrices = []
     for row_perm in row_permutations:
         for col_perm in col_permutations:
-            new_matrix = matrix[np.ix_(list(row_perm), list(col_perm))]
+            new_matrix = []
+            for i in row_perm:
+                row = []
+                for j in col_perm:
+                    row.append(matrix[i][j])
+                new_matrix.append(row)
             matrices.append(new_matrix)
     return matrices
 
 def find_zero_diagonal_matrices(matrices):
+    """Находит матрицы с нулевой диагональю."""
     zero_diagonal_matrices = []
     for matrix in matrices:
-        if np.trace(matrix) == 0:
+        trace = 0
+        for i in range(len(matrix)):
+            trace += matrix[i][i]
+        if trace == 0:
             zero_diagonal_matrices.append(matrix)
     return zero_diagonal_matrices
 
-matrix = np.array([list(map(int, line.split())) for line in open('matrix.txt')])
+matrix = [
+        [0, 2, 3, 1],
+        [7, 0, 8, 4],
+        [6, 9, 0, 2],
+        [1, 3, 4, 0]
+    ]
 
 # Замер времени для алгоритмического способа
-start_time = time.time()
 matrices_algorithmic = generate_matrices_algorithmic(matrix)
 zero_diagonal_matrices_algorithmic = find_zero_diagonal_matrices(matrices_algorithmic)
-end_time = time.time()
-print(f"Алгоритмический способ: {end_time - start_time:.4f} сек")
+alg_time=timeit.timeit(lambda: find_zero_diagonal_matrices(generate_matrices_algorithmic(matrix)), number=10)
+print(f"Алгоритмический способ: {alg_time:.4f} сек")
 print("Матрицы с нулевой диагональю (алгоритмический способ):")
+print(f"Количество матриц: {len(zero_diagonal_matrices_algorithmic)}")
 for mat in zero_diagonal_matrices_algorithmic:
-    print(mat)
+    for i in mat:
+        print(i)
     print()
 
-# Замер времени для способа с использованием Itertools
-start_time = time.time()
+# Замер времени для способа с использованием NumPy
 matrices_pythonic = generate_matrices_pythonic(matrix)
 zero_diagonal_matrices_pythonic = find_zero_diagonal_matrices(matrices_pythonic)
-end_time = time.time()
-print(f"NumPy способ: {end_time - start_time:.4f} сек")
-print("Матрицы с нулевой диагональю (NumPy способ):")
+it_time=timeit.timeit(lambda: find_zero_diagonal_matrices(generate_matrices_pythonic(matrix)), number=10)
+print(f"Itertools способ: {it_time:.4f} сек")
+print("Матрицы с нулевой диагональю (Itertools способ):")
+print(f"Количество матриц: {len(zero_diagonal_matrices_pythonic)}")
 for mat in zero_diagonal_matrices_pythonic:
-    print(mat)
+    for i in mat:
+        print(i)
     print()
-
-
 
