@@ -1,0 +1,283 @@
+Требуется написать ООП с графическим интерфейсом в соответствии со своим вариантом. 
+Должны быть реализованы минимум один класс, три атрибута, четыре метода (функции). 
+Ввод данных из файла с контролем правильности ввода. 
+Базы данных не использовать. При необходимости сохранять информацию в файлах, разделяя 
+значения запятыми (CSV файлы) или пробелами. Для GUI использовать библиотеку tkinter (mathplotlib не использовать).
+Вариант 22
+Объекты – договоры на клининг
+Функции:	сегментация полного списка договоров по заказчикам
+визуализация предыдущей функции в форме круговой диаграммы
+сегментация полного списка договоров по работникам
+визуализация предыдущей функции в форме круговой диаграммы
+
+-------------------------------------------------------------------------------------------------------------------
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+
+class CleanContr:
+    def __init__(self):
+        self.contracts = []
+        self.load_data()
+        self.window = tk.Tk()
+        self.window.title("Договоры на клининг")
+        self.window.geometry("800x500")
+
+        self.create_widgets()
+        self.window.mainloop()
+
+    def load_data(self):
+        try:
+            with open("contracts.txt", "r", encoding='utf-8') as f:
+                for line in f:
+                    data = line.strip().split(",")
+                    if len(data) == 6:  # Изменено на 6 полей с учетом цены
+                        contract = {
+                            'order_id': data[0], 'client': data[1], 'employee': data[2],
+                            'address': data[3], 'status': data[4], 'price': data[5]  # Добавлено поле цены
+                        }
+                        self.contracts.append(contract)
+        except FileNotFoundError:
+            pass
+
+    def save_data(self):
+        with open("contracts.txt", "w", encoding='utf-8') as f:
+            for contract in self.contracts:
+                f.write(
+                    f"{contract['order_id']},{contract['client']},{contract['employee']},{contract['address']},{contract['status']},{contract['price']}\n")
+
+    def create_widgets(self):
+        self.btn1 = ttk.Button(self.window, text="Таблица заказчиков", command=self.segmzak)
+        self.btn1.grid(row=1, column=1, padx=5, pady=5)
+
+        self.btn2 = ttk.Button(self.window, text="Диаграмма заказчиков", command=self.viszak)
+        self.btn2.grid(row=1, column=2, padx=5, pady=5)
+
+        self.btn3 = ttk.Button(self.window, text="Таблица работников", command=self.segmrab)
+        self.btn3.grid(row=1, column=3, padx=5, pady=5)
+
+        self.btn4 = ttk.Button(self.window, text="Диаграмма работников", command=self.visrab)
+        self.btn4.grid(row=1, column=4, padx=5, pady=5)
+
+        self.btn5 = ttk.Button(self.window, text="Добавить договор", command=self.add_contract)
+        self.btn5.grid(row=1, column=5, padx=5, pady=5)
+
+        self.btn6 = ttk.Button(self.window, text="Удалить договор", command=self.delete_contract)
+        self.btn6.grid(row=1, column=6, padx=5, pady=5)
+
+        for i in range(1, 7):
+            self.window.columnconfigure(index=i, weight=1)
+
+        self.window.resizable(height=False, width=False)
+
+    def segmzak(self):
+        self.clear_frame()
+
+        frame = ttk.Frame(self.window, borderwidth=1, relief=tk.SOLID, padding=[2, 10, 2, 2])
+        columns = ('№ заказа', 'Заказчик', 'Адрес', 'Статус', 'Цена')
+        table = ttk.Treeview(frame, columns=columns, show='headings', height=15)
+
+        for col in columns:
+            table.heading(col, text=col)
+            table.column(col, width=120)
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=table.yview)
+        table.configure(yscrollcommand=scrollbar.set)
+
+        for contract in self.contracts:
+            table.insert("", tk.END, values=(
+                contract['order_id'], contract['client'], contract['address'],
+                contract['status'], contract['price']
+            ))
+
+        table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        frame.grid(row=2, column=1, columnspan=6, sticky='nsew', padx=10, pady=10)
+
+    def segmrab(self):
+        self.clear_frame()
+
+        frame = ttk.Frame(self.window, borderwidth=1, relief=tk.SOLID, padding=[2, 10, 2, 2])
+        columns = ('№ заказа', 'Работник', 'Адрес', 'Статус')
+        table = ttk.Treeview(frame, columns=columns, show='headings', height=15)
+
+        for col in columns:
+            table.heading(col, text=col)
+            table.column(col, width=150)
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=table.yview)
+        table.configure(yscrollcommand=scrollbar.set)
+
+        for contract in self.contracts:
+            table.insert("", tk.END, values=(
+                contract['order_id'], contract['employee'],
+                contract['address'], contract['status']
+            ))
+
+        table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        frame.grid(row=2, column=1, columnspan=6, sticky='nsew', padx=10, pady=10)
+
+    def viszak(self):
+        clients_data = {}
+        for contract in self.contracts:
+            client = contract['client']
+            clients_data[client] = clients_data.get(client, 0) + 1
+
+        self.show_chart("Заказчики", clients_data)
+
+    def visrab(self):
+        employees_data = {}
+        for contract in self.contracts:
+            employee = contract['employee']
+            employees_data[employee] = employees_data.get(employee, 0) + 1
+
+        self.show_chart("Работники", employees_data)
+
+    def show_chart(self, title, data):
+        if not data:
+            messagebox.showinfo("Информация", "Нет данных для отображения")
+            return
+
+        chart_window = tk.Toplevel(self.window)
+        chart_window.title(f"Диаграмма - {title}")
+        chart_window.geometry("500x500")
+
+        canvas = tk.Canvas(chart_window, width=450, height=450, bg="white")
+        canvas.pack(pady=10)
+
+        total = sum(data.values())
+        start_angle = 0
+        colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD"]
+
+        center_x, center_y, radius = 200, 150, 120
+
+        for i, (name, value) in enumerate(data.items()):
+            angle = 360 * (value / total)
+            color = colors[i % len(colors)]
+
+            canvas.create_arc(
+                center_x - radius, center_y - radius,
+                center_x + radius, center_y + radius,
+                start=start_angle, extent=angle, fill=color, outline="black"
+            )
+
+            legend_y = 300 + i * 25
+            canvas.create_rectangle(50, legend_y, 70, legend_y + 15, fill=color)
+            percentage = (value / total) * 100
+            canvas.create_text(75, legend_y + 7, anchor="w",
+                               text=f"{name}: {value} ({percentage:.1f}%)")
+
+            start_angle += angle
+
+        canvas.create_text(center_x, center_y - radius - 20,
+                           text=title, font=("Arial", 12, "bold"))
+
+    def add_contract(self):
+        add_window = tk.Toplevel(self.window)
+        add_window.title("Добавить договор")
+        add_window.geometry("400x350")
+
+        fields = [
+            ("№ заказа:", "order_id"),
+            ("Заказчик:", "client"),
+            ("Работник:", "employee"),
+            ("Адрес:", "address"),
+            ("Статус:", "status"),
+            ("Цена:", "price")  # Добавлено поле цены
+        ]
+
+        entries = {}
+
+        for i, (label, key) in enumerate(fields):
+            ttk.Label(add_window, text=label).grid(row=i, column=0, sticky="e", padx=5, pady=8)
+            entry = ttk.Entry(add_window, width=25)
+            entry.grid(row=i, column=1, padx=5, pady=8)
+            entries[key] = entry
+
+        def save_contract():
+            for key, entry in entries.items():
+                if not entry.get().strip():
+                    messagebox.showerror("Ошибка", "Все поля должны быть заполнены!")
+                    return
+
+            # Проверка, что цена - число
+            try:
+                float(entries['price'].get())
+            except ValueError:
+                messagebox.showerror("Ошибка", "Цена должна быть числом!")
+                return
+
+            self.contracts.append({
+                'order_id': entries['order_id'].get().strip(),
+                'client': entries['client'].get().strip(),
+                'employee': entries['employee'].get().strip(),
+                'address': entries['address'].get().strip(),
+                'status': entries['status'].get().strip(),
+                'price': entries['price'].get().strip()
+            })
+
+            self.save_data()
+            messagebox.showinfo("Успех", "Договор успешно добавлен!")
+            add_window.destroy()
+
+        ttk.Button(add_window, text="Сохранить", command=save_contract).grid(row=6, column=0, columnspan=2, pady=20)
+
+    def delete_contract(self):
+        if not self.contracts:
+            messagebox.showinfo("Информация", "Нет договоров для удаления")
+            return
+
+        delete_window = tk.Toplevel(self.window)
+        delete_window.title("Удалить договор")
+        delete_window.geometry("600x400")
+
+        frame = ttk.Frame(delete_window)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        columns = ('№ заказа', 'Заказчик', 'Работник', 'Адрес', 'Статус')
+        table = ttk.Treeview(frame, columns=columns, show='headings', height=15)
+
+        for col in columns:
+            table.heading(col, text=col)
+            table.column(col, width=100)
+
+        scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=table.yview)
+        table.configure(yscrollcommand=scrollbar.set)
+
+        for contract in self.contracts:
+            table.insert("", tk.END, values=(
+                contract['order_id'], contract['client'], contract['employee'],
+                contract['address'], contract['status']
+            ))
+
+        table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        def delete_selected():
+            selected_item = table.selection()
+            if not selected_item:
+                messagebox.showwarning("Предупреждение", "Выберите договор для удаления")
+                return
+
+            item_values = table.item(selected_item[0], 'values')
+            order_id = item_values[0]
+
+            self.contracts = [contract for contract in self.contracts if contract['order_id'] != order_id]
+
+            self.save_data()
+
+            table.delete(selected_item[0])
+            messagebox.showinfo("Успех", f"Договор №{order_id} удален")
+
+        ttk.Button(delete_window, text="Удалить выбранный", command=delete_selected).pack(pady=10)
+
+    def clear_frame(self):
+        for widget in self.window.grid_slaves():
+            if int(widget.grid_info()["row"]) == 2:
+                widget.destroy()
+
+
+if __name__ == "__main__":
+    app = CleanContr()
