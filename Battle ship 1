@@ -1,0 +1,317 @@
+import tkinter as tk
+from tkinter import messagebox
+import random
+
+class BattleshipGame:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Морской бой — Игрок vs Бот")
+        self.setup_game()
+
+    def setup_game(self):
+        self.player_ships = [[0]*10 for _ in range(10)]
+        self.bot_ships = [[0]*10 for _ in range(10)]
+        self.player_shots = [[0]*10 for _ in range(10)]
+        self.bot_shots = [[0]*10 for _ in range(10)]
+
+        self.placing_phase = True
+        self.current_ship_index = 0
+        self.ships_to_place = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]  # стандартный флот
+        self.orientation = 'horizontal'
+        self.create_ui()
+
+    def create_ui(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        self.status_label = tk.Label(self.root, text="", font=("Arial", 12))
+        self.status_label.pack(pady=5)
+
+        self.orientation_btn = tk.Button(
+            self.root,
+            text="Ориентация: Горизонтально",
+            command=self.toggle_orientation
+        )
+        self.orientation_btn.pack(pady=5)
+
+        self.auto_place_btn = tk.Button(
+            self.root,
+            text="Авто-расстановка",
+            command=self.auto_place_player_ships
+        )
+        self.auto_place_btn.pack(pady=5)
+
+        boards_frame = tk.Frame(self.root)
+        boards_frame.pack(pady=10)
+
+        self.player_board_frame = tk.Frame(boards_frame, relief="groove", bd=2)
+        self.player_board_frame.grid(row=0, column=0, padx=10)
+        self.create_board(self.player_board_frame, is_player=True)
+
+        self.bot_board_frame = tk.Frame(boards_frame, relief="groove", bd=2)
+        self.bot_board_frame.grid(row=0, column=1, padx=10)
+        self.create_board(self.bot_board_frame, is_player=False)
+
+        self.reset_btn = tk.Button(
+            self.root,
+            text="Новая игра",
+            command=self.setup_game
+        )
+        self.reset_btn.pack(pady=10)
+
+        self.update_status()
+
+    def toggle_orientation(self):
+        if not self.placing_phase:
+            return
+        self.orientation = 'vertical' if self.orientation == 'horizontal' else 'horizontal'
+        text = "Ориентация: Вертикально" if self.orientation == 'vertical' else "Ориентация: Горизонтально"
+        self.orientation_btn.config(text=text)
+
+    def create_board(self, parent, is_player):
+        for i in range(10):
+            for j in range(10):
+                if is_player:
+                    color = "lightblue"
+                    cmd = lambda r=i, c=j: self.on_player_board_click(r, c)
+                else:
+                    color = "lightblue"
+                    cmd = lambda r=i, c=j: self.on_bot_board_click(r, c)
+                btn = tk.Button(
+                    parent,
+                    width=2,
+                    height=1,
+                    bg=color,
+                    command=cmd
+                )
+                btn.grid(row=i, column=j)
+
+    def on_player_board_click(self, row, col):
+        if not self.placing_phase:
+            return
+        if self.try_place_ship(self.player_ships, row, col, self.ships_to_place[self.current_ship_index], self.orientation):
+            self.current_ship_index += 1
+            self.redraw_placement_boards()
+            if self.current_ship_index >= len(self.ships_to_place):
+                self.finish_player_placement()
+            self.update_status()
+
+    def on_bot_board_click(self, row, col):
+        if not self.placing_phase and self.current_player == 1:
+            if self.player_shots[row][col] != 0:
+                return
+            self.process_player_shot(row, col)
+
+    def try_place_ship(self, board, start_row, start_col, size, orientation):
+        coords = []
+        if orientation == 'horizontal':
+            if start_col + size > 10:
+                return False
+            coords = [(start_row, start_col + i) for i in range(size)]
+        else:
+            if start_row + size > 10:
+                return False
+            coords = [(start_row + i, start_col) for i in range(size)]
+
+        for r, c in coords:
+            for dr in [-1, 0, 1]:
+                for dc in [-1, 0, 1]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < 10 and 0 <= nc < 10:
+                        if board[nr][nc] == 1:
+                            return False
+
+        for r, c in coords:
+            board[r][c] = 1
+        return True
+
+    def auto_place_ships(self, board):
+        ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1]
+        for size in ships:
+            placed = False
+            attempts = 0
+            while not placed and attempts < 100:
+                orientation = random.choice(['horizontal', 'vertical'])
+                if orientation == 'horizontal':
+                    row = random.randint(0, 9)
+                    col = random.randint(0, 10 - size)
+                else:
+                    row = random.randint(0, 10 - size)
+                    col = random.randint(0, 9)
+                placed = self.try_place_ship(board, row, col, size, orientation)
+                attempts += 1
+            if not placed:
+                # Сброс и повтор (редко нужно)
+                board[:] = [[0]*10 for _ in range(10)]
+                return self.auto_place_ships(board)
+
+    def auto_place_player_ships(self):
+        if not self.placing_phase:
+            return
+        self.player_ships = [[0]*10 for _ in range(10)]
+        self.auto_place_ships(self.player_ships)
+        self.current_ship_index = len(self.ships_to_place)
+        self.finish_player_placement()
+
+    def finish_player_placement(self):
+        self.placing_phase = False
+        self.orientation_btn.pack_forget()
+        self.auto_place_btn.pack_forget()
+
+        # Расставляем корабли бота
+        self.auto_place_ships(self.bot_ships)
+
+        self.current_player = 1
+        self.start_battle_phase()
+
+    def start_battle_phase(self):
+        self.create_board(self.player_board_frame, is_player=True)
+        self.create_board(self.bot_board_frame, is_player=False)
+        self.apply_shots(self.player_board_frame, self.bot_shots, is_player_board=True)
+        self.apply_shots(self.bot_board_frame, self.player_shots, is_player_board=False)
+        self.update_status()
+        if self.current_player == 2:
+            self.bot_turn()
+
+    def apply_shots(self, frame, shots, is_player_board=False):
+        for i in range(10):
+            for j in range(10):
+                btn = frame.grid_slaves(row=i, column=j)[0]
+                if shots[i][j] == 1:
+                    btn.config(bg="white")
+                elif shots[i][j] == 2:
+                    btn.config(bg="red")
+                else:
+                    if is_player_board:
+                        # Показываем свои корабли
+                        if self.player_ships[i][j] == 1:
+                            btn.config(bg="gray")
+                    else:
+                        # Поле бота — не показываем корабли до попадания
+                        btn.config(bg="lightblue")
+
+    def process_player_shot(self, row, col):
+        if self.bot_ships[row][col] == 1:
+            self.player_shots[row][col] = 2
+            hit = True
+        else:
+            self.player_shots[row][col] = 1
+            hit = False
+
+        self.redraw_battle_boards()
+        if hit:
+            if self.is_ship_sunk(self.bot_ships, self.player_shots, row, col):
+                self.mark_surroundings(self.bot_ships, self.player_shots, self.bot_board_frame, row, col)
+            if self.check_victory(self.bot_ships, self.player_shots):
+                messagebox.showinfo("Победа!", "Вы победили!")
+                self.setup_game()
+                return
+            # Ход остаётся у игрока
+        else:
+            self.current_player = 2
+            self.update_status()
+            self.root.after(500, self.bot_turn)  # небольшая задержка для наглядности
+
+    def bot_turn(self):
+        if self.current_player != 2:
+            return
+
+        empty_cells = [(r, c) for r in range(10) for c in range(10) if self.bot_shots[r][c] == 0]
+        if not empty_cells:
+            return
+
+        row, col = random.choice(empty_cells)
+
+        if self.player_ships[row][col] == 1:
+            self.bot_shots[row][col] = 2
+            hit = True
+        else:
+            self.bot_shots[row][col] = 1
+            hit = False
+
+        self.redraw_battle_boards()
+
+        if hit:
+            if self.is_ship_sunk(self.player_ships, self.bot_shots, row, col):
+                self.mark_surroundings(self.player_ships, self.bot_shots, self.player_board_frame, row, col)
+            if self.check_victory(self.player_ships, self.bot_shots):
+                messagebox.showinfo("Поражение!", "Бот победил!")
+                self.setup_game()
+                return
+            # Бот ходит снова
+            self.root.after(500, self.bot_turn)
+        else:
+            self.current_player = 1
+            self.update_status()
+
+    def redraw_battle_boards(self):
+        self.create_board(self.player_board_frame, is_player=True)
+        self.create_board(self.bot_board_frame, is_player=False)
+        self.apply_shots(self.player_board_frame, self.bot_shots, is_player_board=True)
+        self.apply_shots(self.bot_board_frame, self.player_shots, is_player_board=False)
+
+    def redraw_placement_boards(self):
+        self.create_board(self.player_board_frame, is_player=True)
+        for i in range(10):
+            for j in range(10):
+                btn = self.player_board_frame.grid_slaves(row=i, column=j)[0]
+                if self.player_ships[i][j] == 1:
+                    btn.config(bg="gray")
+
+    def find_ship_cells(self, ship_board, start_row, start_col):
+        visited = set()
+        stack = [(start_row, start_col)]
+        ship_cells = []
+        while stack:
+            r, c = stack.pop()
+            if (r, c) in visited or not (0 <= r < 10 and 0 <= c < 10):
+                continue
+            if ship_board[r][c] != 1:
+                continue
+            visited.add((r, c))
+            ship_cells.append((r, c))
+            stack.extend([(r-1, c), (r+1, c), (r, c-1), (r, c+1)])
+        return ship_cells
+
+    def is_ship_sunk(self, ship_board, shot_board, row, col):
+        if ship_board[row][col] != 1:
+            return False
+        ship_cells = self.find_ship_cells(ship_board, row, col)
+        return all(shot_board[r][c] == 2 for r, c in ship_cells)
+
+    def mark_surroundings(self, ship_board, shot_board, frame, row, col):
+        ship_cells = self.find_ship_cells(ship_board, row, col)
+        for r, c in ship_cells:
+            for dr in [-1, 0, 1]:
+                for dc in [-1, 0, 1]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < 10 and 0 <= nc < 10:
+                        if shot_board[nr][nc] == 0 and ship_board[nr][nc] != 1:
+                            shot_board[nr][nc] = 1
+                            btn = frame.grid_slaves(row=nr, column=nc)[0]
+                            btn.config(bg="white")
+
+    def check_victory(self, ships, shots):
+        for i in range(10):
+            for j in range(10):
+                if ships[i][j] == 1 and shots[i][j] != 2:
+                    return False
+        return True
+
+    def update_status(self):
+        if self.placing_phase:
+            ship_size = self.ships_to_place[self.current_ship_index]
+            orient_text = "Горизонтально" if self.orientation == 'horizontal' else "Вертикально"
+            self.status_label.config(
+                text=f"Разместите {ship_size}-палубный корабль ({orient_text}). Или нажмите 'Авто-расстановка'."
+            )
+        else:
+            if self.current_player == 1:
+                self.status_label.config(text="Ваш ход! Кликните по полю бота.")
+            else:
+                self.status_label.config(text="Ходит бот...")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    game = BattleshipGame(root)
+    root.mainloop()
